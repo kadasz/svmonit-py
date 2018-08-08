@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import re
 import subprocess
 
 
-class CMD:
+class Run:
 
     def __call__(self, cmd, *args):
         try:
@@ -21,5 +22,18 @@ class CMD:
         except Exception as e:
             return False
         finally:
-            return result
+            return result.decode("utf-8").rstrip()
 
+class Runsv:
+
+    def __init__(self, action, service):
+        regex = r'^(?P<status>(.*?)):\s+(?P<proc>(.*?)):\s+(\(pid\s+(?P<pid>\d+)\)\s+)?(?P<ttl>\d+)s'
+        self.cmd = Run()
+        sv = self.cmd('sv', action, service)
+        match = re.match(regex, sv)
+        self.status = match.groupdict()
+
+    def __str__(self):
+        return "{}".format(self.status)
+
+#print(Runsv('status', 'cron'))
