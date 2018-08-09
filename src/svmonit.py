@@ -2,7 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import re
+import sys
+import argparse
 import subprocess
+
+
+__author__ = 'Karol D. Sz.'
+__contact__ = 'karol_sz@poczta.fm'
+__version__ = '0.0.1'
+__doc__ = 'Simple python script that monitor runit service'
+
 
 def sec_to_dhms(sec):
     days = sec // (3600 * 24)
@@ -55,4 +64,23 @@ class Runsv:
             ret = None
         return "{}".format(ret)
 
-#print(Runsv('cron'))
+def main():
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__,
+                        help='show version')
+    parser.add_argument('-s', dest='sv_name', type=str,
+                        help='select runit service')
+    args = parser.parse_args()
+    try:
+        if not args.sv_name:
+            parser.print_help()
+            sys.exit()
+        elif args.sv_name:
+           print(SV(args.sv_name))
+    except Exception as e:
+        print('Error - {}'.format(e))
+        sys.exit(3)
+
+if __name__ == '__main__':
+    main()
