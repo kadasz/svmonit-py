@@ -4,6 +4,20 @@
 import re
 import subprocess
 
+def sec_to_dhms(sec):
+    days = sec // (3600 * 24)
+    hours = (sec // 3600) % 24
+    minutes = (sec // 60) % 60
+    seconds = sec % 60
+    if days > 0:
+        return '{:0.0f}d{:0.0f}h{:0.0f}m{:0.0f}s'.format(days, hours, minutes, seconds)
+    elif hours > 0:
+        return '{:0.0f}h{:0.0f}m{:0.0f}s'.format(hours, minutes, seconds)
+    elif minutes > 0:
+        return '{:0.0f}m{:0.0f}s'.format(minutes, seconds)
+    else:
+        return '{:0.0f}s'.format(seconds)
+
 
 class Run:
 
@@ -30,15 +44,15 @@ class Runsv:
         cmd = CMD()
         self.sv = cmd('sv', '{}'.format('restart' if restart else 'status'), service)
 
-    def __str__(self):
+    def __repr__(self):
         regex = r'^(?P<status>(.*?)):\s+(?P<proc>(.*?)):\s+(\(pid\s+(?P<pid>\d+)\)\s+)?(?P<ttl>\d+)s'
         status = self.sv
         if not status.startswith('fail'):
             match = re.match(regex, status)
             ret =  match.groupdict()
+            ret.update({'ttl': "{}".format(sec_to_dhms(int(ret['ttl'])))})
         else:
             ret = None
         return "{}".format(ret)
 
-
-#print(Runsv('status', 'cron'))
+#print(Runsv('cron'))
