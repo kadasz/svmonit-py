@@ -26,14 +26,19 @@ class Run:
 
 class Runsv:
 
-    def __init__(self, action, service):
-        regex = r'^(?P<status>(.*?)):\s+(?P<proc>(.*?)):\s+(\(pid\s+(?P<pid>\d+)\)\s+)?(?P<ttl>\d+)s'
-        self.cmd = Run()
-        sv = self.cmd('sv', action, service)
-        match = re.match(regex, sv)
-        self.status = match.groupdict()
+    def __init__(self, service, restart=None):
+        cmd = CMD()
+        self.sv = cmd('sv', '{}'.format('restart' if restart else 'status'), service)
 
     def __str__(self):
-        return "{}".format(self.status)
+        regex = r'^(?P<status>(.*?)):\s+(?P<proc>(.*?)):\s+(\(pid\s+(?P<pid>\d+)\)\s+)?(?P<ttl>\d+)s'
+        status = self.sv
+        if not status.startswith('fail'):
+            match = re.match(regex, status)
+            ret =  match.groupdict()
+        else:
+            ret = None
+        return "{}".format(ret)
+
 
 #print(Runsv('status', 'cron'))
