@@ -105,21 +105,58 @@ class MailLogger(SMTPHandler):
 
 def main():
 
-    parser = argparse.ArgumentParser(description=__doc__)
+     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__,
                         help='show version')
-    parser.add_argument('-s', dest='sv_name', type=str,
+    parser.add_argument('-s', dest='svname', type=str,
                         help='select runit service')
+    parser.add_argument('-m', dest='host', type=str,
+                        help='select mail host address')
+    parser.add_argument('-p', dest='port', type=int,
+                        help='select mail host port - optional')
+    parser.add_argument('-t', dest='sender', type=str,
+                        help='select sender email')
+    parser.add_argument('-r', dest='receiver', type=str,
+                        help='select receiver email')
     args = parser.parse_args()
+
     try:
-        if not args.sv_name:
+        if not args.svname:
             parser.print_help()
             sys.exit()
-        elif args.sv_name:
-           print(SV(args.sv_name))
+        elif not args.svname:
+            parser.error("Please  select runit service name")
+        elif args.svname:
+            pass
     except Exception as e:
         print('Error - {}'.format(e))
         sys.exit(3)
+
+    try:
+        if not args.host:
+            parser.error("Please select host mail name")
+        elif not args.sender:
+            parser.error("Please select sender email")
+        elif not args.receiver:
+            parser.error("Please select receiver email")
+        elif args.host and not args.sender and not args.receiver:
+            pass
+    except Exception as e:
+        print('Error - {}'.format(e))
+        sys.exit(3)
+
+    MAILHOST = "{}".format(args.host)
+    MAILPORT = "{}".format('default' if args.port is None else args.port)
+    SENDER = "{}".format(args.sender)
+    RECIPIENT = "{}".format(args.receiver)
+    SUBJECT = '[ALERT] Error while work a {} service'.format(args.svname)
+
+    log = logging.getLogger()
+    log.setLevel(logging.DEBUG)
+    mail_handler = MailLogger(host=MAILHOST, port=MAILPORT, fromm=SENDER, to=RECIPIENT, subject=SUBJECT)
+    mail_handler.setLevel(logging.INFO)
+    mail_handler.setFormatter("%(msg)s")
+    log.addHandler(mail_handler)
 
 if __name__ == '__main__':
     main()
