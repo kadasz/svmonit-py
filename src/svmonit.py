@@ -52,8 +52,10 @@ class Runsv:
     def __init__(self, service, restart=None):
         cmd = CMD()
         self.sv = cmd('sv', '{}'.format('restart' if restart else 'status'), service)
+        for k, v in self._status_dict().items():
+            self.__dict__[k] = v
 
-    def __repr__(self):
+    def _status_dict(self):
         regex = r'^(?P<status>(.*?)):\s+(?P<proc>(.*?)):\s+(\(pid\s+(?P<pid>\d+)\)\s+)?(?P<ttl>\d+)s'
         status = self.sv
         if not status.startswith('fail'):
@@ -61,8 +63,8 @@ class Runsv:
             ret =  match.groupdict()
             ret.update({'ttl': "{}".format(sec_to_dhms(int(ret['ttl'])))})
         else:
-            ret = None
-        return "{}".format(ret)
+            ret = dict(status=None)
+        return ret
 
 def main():
 
