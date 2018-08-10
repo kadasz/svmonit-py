@@ -3,8 +3,15 @@
 
 import re
 import sys
+import smtplib
+import logging
 import argparse
 import subprocess
+from email.utils import formatdate
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from logging.handlers import SMTPHandler
 
 
 __author__ = 'Karol D. Sz.'
@@ -65,6 +72,36 @@ class Runsv:
         else:
             ret = dict(status=None)
         return ret
+
+class MailLogger(SMTPHandler):
+    '''
+    Custom MailLogger for the logger.
+    '''
+
+    def __init__(self, host, port, fromm, to, subject, credentials=None, secure=None):
+        super(MailLogger, self).__init__(host, port, fromm, to, subject, credentials, secure)
+        self.host = host
+        self.port = smtplib.SMTP_PORT if port is 'default' else port
+        self.fromm = fromm
+        self.to = to
+        self.subject = subject
+        self.timeout = 5.0
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            msg  = msg = MIMEMultipart()
+            msg['From'] = self.fromm
+            msg['To'] = self.to
+            msg['Date'] = formatdate(localtime=True)
+            msg['Subject'] = self.subject
+            msg.attach(MIMEText(record.msg, 'plain'))
+            smtp = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
+            smtp.sendmail(self.fromm, self.to, msg.as_string())
+            smtp.quit()
+        except:
+            self.handleError(record)
+
 
 def main():
 
