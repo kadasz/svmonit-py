@@ -5,8 +5,10 @@ import re
 import sys
 import smtplib
 import logging
+import datetime
 import argparse
 import subprocess
+from time import sleep
 from email.utils import formatdate
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
@@ -118,6 +120,8 @@ def main():
                         help='select sender email')
     parser.add_argument('-r', dest='receiver', type=str,
                         help='select receiver email')
+    parser.add_argument('-a', dest='svstop', type=int,
+                        help='seconds sv downtime after which notification not will be send')
     args = parser.parse_args()
 
     try:
@@ -130,7 +134,7 @@ def main():
             pass
     except Exception as e:
         print('Error - {}'.format(e))
-        sys.exit(3)
+        sys.exit(1)
 
     try:
         if not args.host:
@@ -139,17 +143,19 @@ def main():
             parser.error("Please select sender email")
         elif not args.receiver:
             parser.error("Please select receiver email")
-        elif args.host and not args.sender and not args.receiver:
+        elif not args.svstop:
+            parser.error("Please type seconds sv downtime")
+        elif args.host and args.sender and args.receiver and args.svstop:
             pass
     except Exception as e:
         print('Error - {}'.format(e))
-        sys.exit(3)
+        sys.exit(1)
 
     MAILHOST = "{}".format(args.host)
     MAILPORT = "{}".format('default' if args.port is None else args.port)
     SENDER = "{}".format(args.sender)
     RECIPIENT = "{}".format(args.receiver)
-    SUBJECT = '[ALERT] Error while work a {} service'.format(args.svname)
+    SUBJECT = '[ALERT] Error while work a {} service'.format(args.svname.upper())
 
     log = logging.getLogger()
     log.setLevel(logging.DEBUG)
@@ -157,6 +163,31 @@ def main():
     mail_handler.setLevel(logging.INFO)
     mail_handler.setFormatter("%(msg)s")
     log.addHandler(mail_handler)
+
+    try:
+        sv = SV(args.svname)
+        if sv.status == False:
+            sys.exit(1)
+        elif sv.status != 'run':
+            if int(sv.ttl) <= args.svstop:
+                count = 0
+                while count <= 3:
+                    r = SV(args.svname)
+                    if r.status in 'run':
+                        break
+                    else:
+                        r = SV(args.svname, restart=True)
+                        sleep(1)
+                        count += 1
+                log.info("Service: {}\n Status: {}\n Downtime: {}\n Checked at: {}\n".format(
+                        args.svname, sv.status, sv.ttl_dhms,
+                        str(datetime.datetime.now().strftime('%H:%M:%S %Y-%m-%d')))
+                )
+        else:
+            pass
+    except Exception as e:
+        print('Error - {}'.format(e))
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
